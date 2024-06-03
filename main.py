@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.ensemble import IsolationForest
 from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer
+from sklearn.metrics import classification_report, accuracy_score, precision_score, recall_score, f1_score
 import matplotlib.pyplot as plt
 from auth import register_user, login_user
 
@@ -16,7 +17,7 @@ def load_and_preprocess_data(uploaded_file):
     
     return df
 
-# Fungsi untuk melatih model dan mendeteksi anomali
+# Fungsi untuk mendeteksi anomali
 def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
     # Membagi data menjadi set pelatihan dan pengujian, menghapus baris yang memiliki missing values
     X_train, X_test = train_test_split(df.dropna(), test_size=0.2, random_state=42)
@@ -48,14 +49,16 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
     df_train['anomaly'] = df_train.apply(lambda row: True if (row['TDS'] > TDS_upper_limit or row['TDS'] < TDS_lower_limit) else row['anomaly'], axis=1)
     df_test['anomaly'] = df_test.apply(lambda row: True if (row['TDS'] > TDS_upper_limit or row['TDS'] < TDS_lower_limit) else row['anomaly'], axis=1)
     
-    return df_train, df_test
+    # Menghitung akurasi
+    y_true_train = df_train['anomaly']
+    y_pred_train = model.predict(X_train_imputed) == -1
+    train_accuracy = accuracy_score(y_true_train, y_pred_train)
 
-# Streamlit App
-st.title("Deteksi Anomali pada Data Air Nutrisi Hidroponik")
-
-# Inisialisasi state
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
+    y_true_test = df_test['anomaly']
+    y_pred_test = model.predict(X_test_imputed) == -1
+    test_accuracy = accuracy_score(y_true_test, y_pred_test)
+    
+    return df_train, df_test, model, X_test_imputed, train_accuracy, test_accuracy
 
 # Fungsi untuk menampilkan halaman utama
 def main_page():
@@ -80,7 +83,7 @@ def main_page():
             st.dataframe(df)  # Menampilkan seluruh data yang diunggah
             
             # Deteksi anomali
-            df_train, df_test = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit)
+            df_train, df_test, model, X_test_imputed, train_accuracy, test_accuracy = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit)
 
             # Membuat kolom untuk menampilkan tabel secara berdampingan
             col1, col2 = st.columns(2)
@@ -104,11 +107,29 @@ def main_page():
             ax.legend()
             st.pyplot(fig)
 
-# Fitur Login dan Register
-menu = ["Login", "Register"]
-choice = st.sidebar.selectbox("Menu", menu)
+            # Menghitung dan menampilkan metrik evaluasi
+            y_true = df_test['anomaly']
+            y_pred = model.predict(X_test_imputed) == -1
+            report = classification_report(y_true, y_pred, output_dict=True)
 
-if choice == "Login":
+            st.write("Laporan Evaluasi (Data Pengujian):")
+            st.write(pd.DataFrame(report).transpose())
+
+            # Menghitung metrik dalam bentuk persentase
+            precision = precision_score(y_true, y_pred) * 100
+            recall = recall_score(y_true, y_pred) * 100
+            f1 = f1_score(y_true, y_pred) * 100
+            accuracy = accuracy_score(y_true, y_pred) * 100
+
+            # Menampilkan metrik dalam bentuk persentase
+            st.write(f"Akurasi: {accuracy:.2f}%")
+            st.write(f"Precision: {precision:.2f}%")
+            st.write(f"Recall: {recall:.2f}%")
+            st.write(f"F1 Score: {f1:.2f}%")
+
+# Fungsi login
+def login():
+    st.title("Website Deteksi Anomali Pada Nutrisi Air Hidroponik")
     st.subheader("Login")
 
     username = st.text_input("Username", key="username_login")
@@ -118,10 +139,13 @@ if choice == "Login":
             st.session_state.logged_in = True
             st.session_state.username = username
             st.success(f"Selamat datang {username}")
+            st.experimental_rerun()  # Refresh halaman setelah login
         else:
             st.warning("Username atau password salah")
 
-elif choice == "Register":
+# Fungsi register
+def register():
+    st.title("Website Deteksi Anomali Pada Nutrisi Air Hidroponik")
     st.subheader("Buat Akun Baru")
 
     username = st.text_input("Username", key="username_register")
@@ -133,6 +157,23 @@ elif choice == "Register":
         else:
             st.warning("Username sudah terdaftar")
 
-# Menampilkan halaman utama jika pengguna sudah login
+# Inisialisasi state
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+
+# Tampilkan menu login atau register hanya jika belum login
+menu = ["Login", "Register", "Main Page"]
 if st.session_state.logged_in:
+    menu.remove("Login")
+    menu.remove("Register")
+else:
+    menu.remove("Main Page")
+
+choice = st.sidebar.selectbox("Menu", menu)
+
+if choice == "Login":
+    login()
+elif choice == "Register":
+    register()
+elif choice == "Main Page":
     main_page()
