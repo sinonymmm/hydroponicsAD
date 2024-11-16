@@ -154,8 +154,11 @@ def register():
         if register_user(username, password):
             st.success("Akun berhasil dibuat")
             st.info("Silakan login dengan akun Anda")
+            # Memanggil rerun untuk langsung menuju halaman login setelah registrasi
+            st.experimental_rerun()  # Refresh halaman untuk menampilkan halaman login
         else:
             st.warning("Username sudah terdaftar")
+
 
 # Inisialisasi state
 if 'logged_in' not in st.session_state:
