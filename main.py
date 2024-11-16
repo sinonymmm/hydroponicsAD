@@ -139,7 +139,7 @@ def login():
             st.session_state.logged_in = True
             st.session_state.username = username
             st.success(f"Selamat datang {username}")
-            st.experimental_rerun()  # Refresh halaman setelah login
+            st.session_state.logged_in = True  # Refresh halaman setelah login
         else:
             st.warning("Username atau password salah")
 
