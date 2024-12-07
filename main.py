@@ -18,7 +18,6 @@ def load_and_preprocess_data(uploaded_file):
     return df
 
 # Fungsi untuk mendeteksi anomali
-# Fungsi untuk mendeteksi anomali
 def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
     # Membagi data menjadi set pelatihan dan pengujian, menghapus baris yang memiliki missing values
     X_train, X_test = train_test_split(df.dropna(), test_size=0.2, random_state=42)
@@ -124,74 +123,6 @@ def main_page():
             report = classification_report(y_true_test, y_pred_test, output_dict=True)
             st.write(pd.DataFrame(report).transpose())
 
-
-# Fungsi untuk menampilkan halaman utama
-def main_page():
-    st.write(f"Selamat datang {st.session_state.username}")
-
-    # Input file uploader
-    uploaded_file = st.file_uploader("Unggah file dataset CSV", type="csv", key="file_uploader_main")
-
-    # Parameter TDS
-    TDS_upper_limit = st.number_input("Batas atas TDS:", value=1200, key="upper_limit")
-    TDS_lower_limit = st.number_input("Batas bawah TDS:", value=400, key="lower_limit")
-
-    if uploaded_file is not None:
-        # Memuat dan memproses data
-        df = load_and_preprocess_data(uploaded_file)
-        
-        if 'TDS' not in df.columns:
-            st.error("Dataset harus memiliki kolom 'TDS'.")
-        else:
-            # Menampilkan data awal
-            st.write("Data Awal:")
-            st.dataframe(df)  # Menampilkan seluruh data yang diunggah
-            
-            # Deteksi anomali
-            df_train, df_test, model, X_test_imputed, train_accuracy, test_accuracy = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit)
-
-            # Membuat kolom untuk menampilkan tabel secara berdampingan
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.write("Data Pelatihan:")
-                st.dataframe(df_train)
-
-            with col2:
-                st.write("Data Pengujian:")
-                st.dataframe(df_test)
-
-            # Visualisasi anomali
-            st.write("Visualisasi Anomali:")
-            fig, ax = plt.subplots()
-            ax.plot(df_train.index, df_train['TDS'], label='TDS')
-            anomalies_train = df_train[df_train['anomaly']]
-            ax.scatter(anomalies_train.index, anomalies_train['TDS'], color='red', label='Anomali (Train)')
-            anomalies_test = df_test[df_test['anomaly']]
-            ax.scatter(anomalies_test.index, anomalies_test['TDS'], color='orange', label='Anomali (Test)')
-            ax.legend()
-            st.pyplot(fig)
-
-            # Menghitung dan menampilkan metrik evaluasi
-            y_true = df_test['anomaly']
-            y_pred = model.predict(X_test_imputed) == -1
-            report = classification_report(y_true, y_pred, output_dict=True)
-
-            st.write("Laporan Evaluasi (Data Pengujian):")
-            st.write(pd.DataFrame(report).transpose())
-
-            # Menghitung metrik dalam bentuk persentase
-            precision = precision_score(y_true, y_pred) * 100
-            recall = recall_score(y_true, y_pred) * 100
-            f1 = f1_score(y_true, y_pred) * 100
-            accuracy = accuracy_score(y_true, y_pred) * 100
-
-            # Menampilkan metrik dalam bentuk persentase
-            st.write(f"Akurasi: {accuracy:.2f}%")
-            st.write(f"Precision: {precision:.2f}%")
-            st.write(f"Recall: {recall:.2f}%")
-            st.write(f"F1 Score: {f1:.2f}%")
-
 # Fungsi login
 def login():
     st.title("Website Deteksi Anomali Pada Nutrisi Air Hidroponik")
@@ -199,11 +130,13 @@ def login():
 
     username = st.text_input("Username", key="username_login")
     password = st.text_input("Password", type='password', key="password_login")
+    
     if st.button("Login", key="login_button"):
         if login_user(username, password):
             st.session_state.logged_in = True
             st.session_state.username = username
             st.success(f"Selamat datang {username}")
+            
             # Set session state for rerun and prevent continuous reruns
             if 'rerun' not in st.session_state:
                 st.session_state.rerun = True
@@ -218,6 +151,7 @@ def register():
 
     username = st.text_input("Username", key="username_register")
     password = st.text_input("Password", type='password', key="password_register")
+    
     if st.button("Register", key="register_button"):
         if register_user(username, password):
             st.success("Akun berhasil dibuat")
