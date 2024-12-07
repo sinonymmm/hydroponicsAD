@@ -150,20 +150,11 @@ def register():
 
     username = st.text_input("Username", key="username_register")
     password = st.text_input("Password", type='password', key="password_register")
-    if st.button("Register", key="register_button"):
-        if register_user(username, password):
-            st.success("Akun berhasil dibuat")
-            st.info("Silakan login dengan akun Anda")
-
-            # Set session state logged_in ke False karena belum login
-            st.session_state.logged_in = False
-
-            # Memanggil rerun untuk langsung menuju halaman login setelah registrasi
-            st.experimental_rerun()  # Refresh halaman untuk menampilkan halaman login
+   if register_user(username, password):
+    st.success("Akun berhasil dibuat")
+    st.experimental_rerun()  # Panggil di akhir setelah pernyataan yang relevan
         else:
-            st.warning("Username sudah terdaftar")
-
-
+    st.warning("Username sudah terdaftar")
 
 # Inisialisasi state
 if 'logged_in' not in st.session_state:
