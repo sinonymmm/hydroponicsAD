@@ -63,7 +63,7 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
     f1 = f1_score(y_true_test, y_pred_test) * 100
 
     # Mengembalikan hasil evaluasi dan DataFrame
-    return df_train, df_test, model, X_test_imputed, accuracy, precision, recall, f1
+    return df_train, df_test, model, X_test_imputed, accuracy, precision, recall, f1, y_true_test, y_pred_test
 
 # Fungsi untuk menampilkan halaman utama
 def main_page():
@@ -88,7 +88,7 @@ def main_page():
             st.dataframe(df)  # Menampilkan seluruh data yang diunggah
             
             # Deteksi anomali
-            df_train, df_test, model, X_test_imputed, accuracy, precision, recall, f1 = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit)
+            df_train, df_test, model, X_test_imputed, accuracy, precision, recall, f1, y_true_test, y_pred_test = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit)
 
             # Membuat kolom untuk menampilkan tabel secara berdampingan
             col1, col2 = st.columns(2)
@@ -112,7 +112,7 @@ def main_page():
             ax.legend()
             st.pyplot(fig)
 
-            # Menampilkan metrik evaluasi dalam bentuk persentase
+            # Menghitung dan menampilkan metrik evaluasi
             st.write(f"Akurasi: {accuracy:.2f}%")
             st.write(f"Precision: {precision:.2f}%")
             st.write(f"Recall: {recall:.2f}%")
@@ -130,13 +130,11 @@ def login():
 
     username = st.text_input("Username", key="username_login")
     password = st.text_input("Password", type='password', key="password_login")
-    
     if st.button("Login", key="login_button"):
         if login_user(username, password):
             st.session_state.logged_in = True
             st.session_state.username = username
             st.success(f"Selamat datang {username}")
-            
             # Set session state for rerun and prevent continuous reruns
             if 'rerun' not in st.session_state:
                 st.session_state.rerun = True
@@ -151,7 +149,6 @@ def register():
 
     username = st.text_input("Username", key="username_register")
     password = st.text_input("Password", type='password', key="password_register")
-    
     if st.button("Register", key="register_button"):
         if register_user(username, password):
             st.success("Akun berhasil dibuat")
