@@ -136,7 +136,7 @@ def main_page():
             ax.legend()
             st.pyplot(fig)
 
-                        try:
+            try:
                 st.write("Scatter Plot 3D Data Train")
                 fig3dtrain = px.scatter_3d(
                     df_train,
@@ -162,7 +162,7 @@ def main_page():
             
                 st.plotly_chart(fig3dtrain)
             except Exception as e:
-                st.error(f"Error pada Scatter Plot Data Train: {e}")
+            st.error(f"Error pada Scatter Plot Data Train: {e}")
             
             # Membuat 3D scatter plot untuk data uji
             st.write("Scatter Plot 3D Data Uji")
