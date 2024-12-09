@@ -46,10 +46,6 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
     df_test = pd.DataFrame(X_test_imputed, columns=X_test.columns)
     df_test['anomaly'] = test_anomalies
 
-    # Menambahkan logika berbasis aturan untuk mendeteksi TDS di luar batas sebagai anomali
-    df_train['anomaly'] = df_train.apply(lambda row: True if (row['TDS'] > TDS_upper_limit or row['TDS'] < TDS_lower_limit) else row['anomaly'], axis=1)
-    df_test['anomaly'] = df_test.apply(lambda row: True if (row['TDS'] > TDS_upper_limit or row['TDS'] < TDS_lower_limit) else row['anomaly'], axis=1)
-
     # Menghitung metrik evaluasi untuk pelatihan dan pengujian
     y_true_train = df_train['anomaly']
     y_pred_train = model.predict(X_train_imputed) == -1
