@@ -136,33 +136,50 @@ def main_page():
             st.pyplot(fig)
 
             st.write("Scatter Plot 3D Data Train")
+
+            try:
+            st.write("Scatter Plot 3D Data Train")
             fig3dtrain = px.scatter_3d(
                 df_train,
                 x='Temp',
                 y='Humid',
                 z='TDS',
-                color=df_train['anomaly'].apply(lambda x: 'Anomaly' if x else 'Normal'),  # Pewarnaan berdasarkan 'anomaly'
-                color_discrete_map={'Anomaly': 'red', 'Normal': 'blue'},  # Warna untuk tiap label
+                color=df_train['anomaly'].apply(lambda x: 'Anomaly' if x else 'Normal'),
+                color_discrete_map={'Anomaly': 'red', 'Normal': 'blue'},
                 title='3D Scatter Plot: Temp vs Humidity vs TDS',
                 labels={'Temp': 'Temperature', 'Humid': 'Humidity', 'TDS': 'TDS'}
             )
-            # Tampilkan plot di Streamlit
             st.plotly_chart(fig3dtrain)
+            except Exception as e:
+            st.error(f"Error pada Scatter Plot Data Train: {e}")
+            
+           # fig3dtrain = px.scatter_3d(
+            #    df_train,
+             #   x='Temp',
+              #  y='Humid',
+               # z='TDS',
+                #color=df_train['anomaly'].apply(lambda x: 'Anomaly' if x else 'Normal'),  # Pewarnaan berdasarkan 'anomaly'
+                #color_discrete_map={'Anomaly': 'red', 'Normal': 'blue'},  # Warna untuk tiap label
+                #title='3D Scatter Plot: Temp vs Humidity vs TDS',
+                #labels={'Temp': 'Temperature', 'Humid': 'Humidity', 'TDS': 'TDS'}
+            #)
+            # Tampilkan plot di Streamlit
+            #st.plotly_chart(fig3dtrain)
             
             # Membuat 3D scatter plot
-            st.write("Scatter Plot 3D Data Uji")
-            fig3d = px.scatter_3d(
-                df_test,
-                x='Temp',
-                y='Humid',
-                z='TDS',
-                color=df_test['anomaly'].apply(lambda x: 'Anomaly' if x else 'Normal'),  # Pewarnaan berdasarkan 'anomaly'
-                color_discrete_map={'Anomaly': 'red', 'Normal': 'blue'},  # Warna untuk tiap label
-                title='3D Scatter Plot: Temp vs Humidity vs TDS',
-                labels={'Temp': 'Temperature', 'Humid': 'Humidity', 'TDS': 'TDS'}
-            )
+         #   st.write("Scatter Plot 3D Data Uji")
+         #   fig3d = px.scatter_3d(
+         #       df_test,
+         #       x='Temp',
+         #       y='Humid',
+         #       z='TDS',
+         #       color=df_test['anomaly'].apply(lambda x: 'Anomaly' if x else 'Normal'),  # Pewarnaan berdasarkan 'anomaly'
+         #       color_discrete_map={'Anomaly': 'red', 'Normal': 'blue'},  # Warna untuk tiap label
+         #       title='3D Scatter Plot: Temp vs Humidity vs TDS',
+         #       labels={'Temp': 'Temperature', 'Humid': 'Humidity', 'TDS': 'TDS'}
+         #   )
             # Tampilkan plot di Streamlit
-            st.plotly_chart(fig3d)
+        #    st.plotly_chart(fig3d)
 
             # Menghitung dan menampilkan metrik evaluasi
             st.write(f"Akurasi: {accuracy:.2f}%")
