@@ -116,11 +116,11 @@ def main_page():
             # Scatter Plot train
             st.write("Scatter Plot Data Train")
             fig, ax = plt.subplots(figsize=(10, 6))
-            ax.scatter(df_train[df_train['anomaly'] == False]['Temp'], df_train[df_train['anomaly'] == False]['TDS'], color='blue', label='Normal')
-            ax.scatter(df_train[df_train['anomaly'] == True]['Temp'], df_train[df_train['anomaly'] == True]['TDS'], color='red', label='Anomaly')
-            ax.set_xlabel('Temperature')
+            ax.scatter(df_train[df_train['anomaly'] == False]['pH'], df_train[df_train['anomaly'] == False]['TDS'], color='blue', label='Normal')
+            ax.scatter(df_train[df_train['anomaly'] == True]['pH'], df_train[df_train['anomaly'] == True]['TDS'], color='red', label='Anomaly')
+            ax.set_xlabel('pH')
             ax.set_ylabel('TDS')
-            ax.set_title('Scatter Plot of Temperature vs. TDS with Anomaly Detection')
+            ax.set_title('Hasil Pelatihan Scatter Plot pH dan TDS dengan Deteksi Anomali')
             ax.legend()
             st.pyplot(fig)
 
@@ -128,11 +128,11 @@ def main_page():
             # Scatter Plot uji
             st.write("Scatter Plot Data Uji")
             fig, ax = plt.subplots(figsize=(10, 6))
-            ax.scatter(df_test[df_test['anomaly'] == False]['Temp'], df_test[df_test['anomaly'] == False]['TDS'], color='blue', label='Normal')
-            ax.scatter(df_test[df_test['anomaly'] == True]['Temp'], df_test[df_test['anomaly'] == True]['TDS'], color='red', label='Anomaly')
-            ax.set_xlabel('Temperature')
+            ax.scatter(df_test[df_test['anomaly'] == False]['pH'], df_test[df_test['anomaly'] == False]['TDS'], color='blue', label='Normal')
+            ax.scatter(df_test[df_test['anomaly'] == True]['pH'], df_test[df_test['anomaly'] == True]['TDS'], color='red', label='Anomaly')
+            ax.set_xlabel('pH')
             ax.set_ylabel('TDS')
-            ax.set_title('Scatter Plot of Temperature vs. TDS with Anomaly Detection')
+            ax.set_title('Hasil Uji Scatter Plot pH dan TDS dengan Deteksi Anomali')
             ax.legend()
             st.pyplot(fig)
 
