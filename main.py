@@ -137,7 +137,7 @@ def main_page():
 
             st.write("Scatter Plot 3D Data Train")
             fig = px.scatter_3d(
-                df_train
+                df_train,
                 x='Temp',
                 y='Humid',
                 z='TDS',
