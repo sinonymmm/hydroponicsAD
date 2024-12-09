@@ -136,66 +136,39 @@ def main_page():
             ax.legend()
             st.pyplot(fig)
 
-            try:
-                st.write("Scatter Plot 3D Data Train")
-                fig3dtrain = px.scatter_3d(
-                    df_train,
-                    x='Temp',
-                    y='Humid',
-                    z='TDS',
-                    color=df_train['anomaly'].apply(lambda x: 'Anomaly' if x else 'Normal'),
-                    color_discrete_map={'Anomaly': 'red', 'Normal': 'blue'},
-                    title='3D Scatter Plot: Temp vs Humidity vs TDS',
-                    labels={'Temp': 'Temperature', 'Humid': 'Humidity', 'TDS': 'TDS'}
-                )
-            
-                # Menyesuaikan layout untuk dark mode
-                fig3dtrain.update_layout(
-                    scene=dict(
-                        xaxis=dict(backgroundcolor="black", gridcolor="gray", zerolinecolor="white"),
-                        yaxis=dict(backgroundcolor="black", gridcolor="gray", zerolinecolor="white"),
-                        zaxis=dict(backgroundcolor="black", gridcolor="gray", zerolinecolor="white"),
-                    ),
-                    paper_bgcolor="black",  # Background luar
-                    font=dict(color="white")  # Warna teks
-                )
-            
-                st.plotly_chart(fig3dtrain)
-            except Exception as e:
-                st.error(f"Error pada Scatter Plot Data Train: {e}")
-            
-            # Membuat 3D scatter plot untuk data uji
-            st.write("Scatter Plot 3D Data Uji")
-            fig3d = px.scatter_3d(
-                df_test,
-                x='Temp',
-                y='Humid',
-                z='TDS',
-                color=df_test['anomaly'].apply(lambda x: 'Anomaly' if x else 'Normal'),
-                color_discrete_map={'Anomaly': 'red', 'Normal': 'blue'},
-                title='3D Scatter Plot: Temp vs Humidity vs TDS',
-                labels={'Temp': 'Temperature', 'Humid': 'Humidity', 'TDS': 'TDS'}
-            )
-            
-            # Menyesuaikan layout untuk dark mode
-            fig3d.update_layout(
-                scene=dict(
-                    xaxis=dict(backgroundcolor="black", gridcolor="gray", zerolinecolor="white"),
-                    yaxis=dict(backgroundcolor="black", gridcolor="gray", zerolinecolor="white"),
-                    zaxis=dict(backgroundcolor="black", gridcolor="gray", zerolinecolor="white"),
-                ),
-                paper_bgcolor="black",  # Background luar
-                font=dict(color="white")  # Warna teks
-            )
-            
-            # Tampilkan plot di Streamlit
-            st.plotly_chart(fig3d)
-
             # Menghitung dan menampilkan metrik evaluasi
             st.write(f"Akurasi: {accuracy:.2f}%")
             st.write(f"Precision: {precision:.2f}%")
             st.write(f"Recall: {recall:.2f}%")
             st.write(f"F1 Score: {f1:.2f}%")
+
+            # Data metrik
+            metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
+            values = [accuracy, precision, recall, f1]  # Nilai metrik
+            colors = ['#FF6F61', '#6BAED6', '#FFD700', '#8DA0CB']  # Warna berbeda untuk setiap metrik
+            
+            # Membuat histogram
+            fig, ax = plt.subplots(figsize=(8, 5))
+            ax.bar(metrics, values, color=colors)
+            
+            # Menambahkan detail pada histogram
+            ax.set_title('Histogram Metrik Evaluasi', fontsize=16, color='#D3D3D3')
+            ax.set_ylabel('Persentase (%)', fontsize=12, color='#D3D3D3')
+            ax.set_ylim(0, 100)  # Karena metrik dalam skala persentase
+            ax.set_xticks(range(len(metrics)))
+            ax.set_xticklabels(metrics, fontsize=10, color='#D3D3D3')
+            ax.yaxis.set_tick_params(colors='#D3D3D3')
+            
+            # Menambahkan nilai pada atas setiap batang histogram
+            for i, v in enumerate(values):
+                ax.text(i, v + 2, f"{v:.2f}%", ha='center', fontsize=10, color='#FFFFFF')
+            
+            # Menyesuaikan latar belakang untuk dark mode
+            fig.patch.set_facecolor('#2F2F2F')  # Latar luar
+            ax.set_facecolor('#2F2F2F')  # Latar dalam
+            
+            # Tampilkan plot di Streamlit
+            st.pyplot(fig)
 
             # Menampilkan laporan evaluasi
             st.write("Laporan Evaluasi (Data Pengujian):")
