@@ -19,7 +19,7 @@ def load_and_preprocess_data(uploaded_file):
     return df
 
 # Fungsi untuk mendeteksi anomali
-def detect_anomalies(df):
+def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
     # Membagi data menjadi set pelatihan dan pengujian, menghapus baris yang memiliki missing values
     X_train, X_test = train_test_split(df.dropna(), test_size=0.2, random_state=42)
 
@@ -69,6 +69,10 @@ def main_page():
     # Input file uploader
     uploaded_file = st.file_uploader("Unggah file dataset CSV", type="csv", key="file_uploader_main")
 
+     # Parameter TDS
+    TDS_upper_limit = st.number_input("Batas atas TDS:", value=1200, key="upper_limit")
+    TDS_lower_limit = st.number_input("Batas bawah TDS:", value=400, key="lower_limit")
+    
     if uploaded_file is not None:
         # Memuat dan memproses data
         df = load_and_preprocess_data(uploaded_file)
@@ -81,7 +85,7 @@ def main_page():
             st.dataframe(df)  # Menampilkan seluruh data yang diunggah
             
             # Deteksi anomali
-            df_train, df_test, model, X_test_imputed, accuracy, precision, recall, f1, y_true_test, y_pred_test = detect_anomalies(df)
+            df_train, df_test, model, X_test_imputed, accuracy, precision, recall, f1, y_true_test, y_pred_test = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit)
 
             # Membuat kolom untuk menampilkan tabel secara berdampingan
             col1, col2 = st.columns(2)
