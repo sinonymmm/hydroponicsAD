@@ -136,7 +136,7 @@ def main_page():
             ax.legend()
             st.pyplot(fig)
 
-            try:
+                        try:
                 st.write("Scatter Plot 3D Data Train")
                 fig3dtrain = px.scatter_3d(
                     df_train,
@@ -148,22 +148,46 @@ def main_page():
                     title='3D Scatter Plot: Temp vs Humidity vs TDS',
                     labels={'Temp': 'Temperature', 'Humid': 'Humidity', 'TDS': 'TDS'}
                 )
+            
+                # Menyesuaikan layout untuk dark mode
+                fig3dtrain.update_layout(
+                    scene=dict(
+                        xaxis=dict(backgroundcolor="black", gridcolor="gray", zerolinecolor="white"),
+                        yaxis=dict(backgroundcolor="black", gridcolor="gray", zerolinecolor="white"),
+                        zaxis=dict(backgroundcolor="black", gridcolor="gray", zerolinecolor="white"),
+                    ),
+                    paper_bgcolor="black",  # Background luar
+                    font=dict(color="white")  # Warna teks
+                )
+            
                 st.plotly_chart(fig3dtrain)
             except Exception as e:
                 st.error(f"Error pada Scatter Plot Data Train: {e}")
-                
-            # Membuat 3D scatter plot
+            
+            # Membuat 3D scatter plot untuk data uji
             st.write("Scatter Plot 3D Data Uji")
             fig3d = px.scatter_3d(
                 df_test,
                 x='Temp',
                 y='Humid',
                 z='TDS',
-                color=df_test['anomaly'].apply(lambda x: 'Anomaly' if x else 'Normal'),  # Pewarnaan berdasarkan 'anomaly'
-                color_discrete_map={'Anomaly': 'red', 'Normal': 'blue'},  # Warna untuk tiap label
+                color=df_test['anomaly'].apply(lambda x: 'Anomaly' if x else 'Normal'),
+                color_discrete_map={'Anomaly': 'red', 'Normal': 'blue'},
                 title='3D Scatter Plot: Temp vs Humidity vs TDS',
                 labels={'Temp': 'Temperature', 'Humid': 'Humidity', 'TDS': 'TDS'}
             )
+            
+            # Menyesuaikan layout untuk dark mode
+            fig3d.update_layout(
+                scene=dict(
+                    xaxis=dict(backgroundcolor="black", gridcolor="gray", zerolinecolor="white"),
+                    yaxis=dict(backgroundcolor="black", gridcolor="gray", zerolinecolor="white"),
+                    zaxis=dict(backgroundcolor="black", gridcolor="gray", zerolinecolor="white"),
+                ),
+                paper_bgcolor="black",  # Background luar
+                font=dict(color="white")  # Warna teks
+            )
+            
             # Tampilkan plot di Streamlit
             st.plotly_chart(fig3d)
 
