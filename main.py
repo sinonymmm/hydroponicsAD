@@ -112,7 +112,7 @@ def main_page():
             ax.legend()
             st.pyplot(fig)
 
-            # Scatter Plot
+            # Scatter Plot train
             st.write("Scatter Plot Data Train")
             fig, ax = plt.subplots(figsize=(10, 6))
             ax.scatter(df_train[df_train['anomaly'] == False]['Temp'], df_train[df_train['anomaly'] == False]['TDS'], color='blue', label='Normal')
@@ -124,7 +124,7 @@ def main_page():
             st.pyplot(fig)
 
 
-            # Scatter Plot
+            # Scatter Plot uji
             st.write("Scatter Plot Data Uji")
             fig, ax = plt.subplots(figsize=(10, 6))
             ax.scatter(df_test[df_test['anomaly'] == False]['Temp'], df_test[df_test['anomaly'] == False]['TDS'], color='blue', label='Normal')
@@ -136,7 +136,7 @@ def main_page():
             st.pyplot(fig)
 
             st.write("Scatter Plot 3D Data Train")
-            fig = px.scatter_3d(
+            fig3dtrain = px.scatter_3d(
                 df_train,
                 x='Temp',
                 y='Humid',
@@ -146,11 +146,12 @@ def main_page():
                 title='3D Scatter Plot: Temp vs Humidity vs TDS',
                 labels={'Temp': 'Temperature', 'Humid': 'Humidity', 'TDS': 'TDS'}
             )
-
+            # Tampilkan plot di Streamlit
+            st.plotly_chart(fig3dtrain)
             
             # Membuat 3D scatter plot
             st.write("Scatter Plot 3D Data Uji")
-            fig = px.scatter_3d(
+            fig3d = px.scatter_3d(
                 df_test,
                 x='Temp',
                 y='Humid',
@@ -160,9 +161,8 @@ def main_page():
                 title='3D Scatter Plot: Temp vs Humidity vs TDS',
                 labels={'Temp': 'Temperature', 'Humid': 'Humidity', 'TDS': 'TDS'}
             )
-
-# Tampilkan plot di Streamlit
-st.plotly_chart(fig)
+            # Tampilkan plot di Streamlit
+            st.plotly_chart(fig3d)
 
             # Menghitung dan menampilkan metrik evaluasi
             st.write(f"Akurasi: {accuracy:.2f}%")
