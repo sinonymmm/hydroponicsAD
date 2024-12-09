@@ -43,8 +43,8 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
         X_train_imputed = X_train.drop(columns='anomali_ground_truth').values
         X_test_imputed = X_test.drop(columns='anomali_ground_truth').values
 
-    # Menghitung rasio kontaminasi
-    kontaminasi = max(0.01, df['anomali_ground_truth'].mean())
+    # Menghitung rasio kontaminasi (dengan batas maksimum 0.5)
+    kontaminasi = min(df['anomali_ground_truth'].mean(), 0.5)
 
     # Inisialisasi model
     model = IsolationForest(contamination=kontaminasi, random_state=42)
