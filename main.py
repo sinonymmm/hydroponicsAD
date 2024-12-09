@@ -69,10 +69,6 @@ def main_page():
     # Input file uploader
     uploaded_file = st.file_uploader("Unggah file dataset CSV", type="csv", key="file_uploader_main")
 
-    # Parameter TDS
-    TDS_upper_limit = st.number_input("Batas atas TDS:", value=1200, key="upper_limit")
-    TDS_lower_limit = st.number_input("Batas bawah TDS:", value=400, key="lower_limit")
-
     if uploaded_file is not None:
         # Memuat dan memproses data
         df = load_and_preprocess_data(uploaded_file)
