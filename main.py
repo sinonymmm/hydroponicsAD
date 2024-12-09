@@ -114,8 +114,8 @@ def main_page():
 
             st.write("Scatter Plot")
             plt.figure(figsize=(10, 6))
-            plt.scatter(df_test[df_test['anomali'] == 0]['Temp'], df_test[df_test['anomali'] == 0]['TDS'], color='blue', label='Normal')
-            plt.scatter(df_test[df_test['anomali'] == 1]['Temp'], df_test[df_test['anomali'] == 1]['TDS'], color='red', label='Anomaly')
+            plt.scatter(df_test[df_test['anomaly'] == 0]['Temp'], df_test[df_test['anomaly'] == 0]['TDS'], color='blue', label='Normal')
+            plt.scatter(df_test[df_test['anomaly'] == 1]['Temp'], df_test[df_test['anomaly'] == 1]['TDS'], color='red', label='Anomaly')
             plt.xlabel('Temperature')
             plt.ylabel('TDS')
             plt.title('Scatter Plot of Temperature vs. TDS with Anomaly Detection')
