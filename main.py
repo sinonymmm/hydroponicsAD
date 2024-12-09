@@ -20,16 +20,22 @@ def load_and_preprocess_data(uploaded_file):
 
 # Fungsi untuk mendeteksi anomali
 def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
+    
+    # Create the 'anomali_ground_truth' column.
+    df['anomali_ground_truth'] = False  # Initialize the column with False values
+    df.loc[((df['TDS'] < TDS_lower_limit) | (df['TDS'] > TDS_upper_limit)), 'anomali_ground_truth'] = True
+    
     # Membagi data menjadi set pelatihan dan pengujian, menghapus baris yang memiliki missing values
     X_train, X_test = train_test_split(df.dropna(), test_size=0.2, random_state=42)
-
+    
     # Mengimputasi nilai yang hilang dengan rata-rata
     imputer = SimpleImputer(strategy='mean')
     X_train_imputed = imputer.fit_transform(X_train)
     X_test_imputed = imputer.transform(X_test)
 
     # Pelatihan model Isolation Forest dengan parameter yang disesuaikan
-    model = IsolationForest(contamination=0.1, random_state=42)
+    kontaminasi = df['anomali_ground_truth'].sum() / len(df)
+    model = IsolationForest(contamination=kontaminasi, random_state=42)
     model.fit(X_train_imputed)
 
     # Prediksi anomali pada data pelatihan dan pengujian
@@ -42,16 +48,17 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
 
     # Menambahkan label anomali ke DataFrame
     df_train = pd.DataFrame(X_train_imputed, columns=X_train.columns)
-    df_train['anomaly'] = train_anomalies
+    df_train['anomali'] = train_anomalies
     df_test = pd.DataFrame(X_test_imputed, columns=X_test.columns)
-    df_test['anomaly'] = test_anomalies
+    df_test['anomali'] = test_anomalies
+    
+    # Pastikan ada kolom 'anomali_ground_truth' pada df_test
+    if 'anomali_ground_truth' not in df_test.columns:
+        raise ValueError("Dataset tidak memiliki kolom 'anomali_ground_truth'")
 
-    # Menghitung metrik evaluasi untuk pelatihan dan pengujian
-    y_true_train = df_train['anomaly']
-    y_pred_train = model.predict(X_train_imputed) == -1
-
-    y_true_test = df_test['anomaly']
-    y_pred_test = model.predict(X_test_imputed) == -1
+    # Membandingkan prediksi model dengan ground truth
+    y_true_test = df_test['anomali_ground_truth']  # Ground truth (label asli)
+    y_pred_test = df_test['anomali']  # Prediksi model Isolation Forest
 
     # Evaluasi metrik untuk pengujian
     accuracy = accuracy_score(y_true_test, y_pred_test) * 100
@@ -60,7 +67,7 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
     f1 = f1_score(y_true_test, y_pred_test) * 100
 
     # Mengembalikan hasil evaluasi dan DataFrame
-    return df_train, df_test, model, X_test_imputed, accuracy, precision, recall, f1, y_true_test, y_pred_test
+    return df_train, df_test, model, accuracy, precision, recall, f1
 
 # Fungsi untuk menampilkan halaman utama
 def main_page():
@@ -85,7 +92,7 @@ def main_page():
             st.dataframe(df)  # Menampilkan seluruh data yang diunggah
             
             # Deteksi anomali
-            df_train, df_test, model, X_test_imputed, accuracy, precision, recall, f1, y_true_test, y_pred_test = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit)
+            df_train, df_test, model, accuracy, precision, recall, f1 = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit)
 
             # Membuat kolom untuk menampilkan tabel secara berdampingan
             col1, col2 = st.columns(2)
@@ -102,9 +109,9 @@ def main_page():
             st.write("Visualisasi Anomali:")
             fig, ax = plt.subplots()
             ax.plot(df_train.index, df_train['TDS'], label='TDS')
-            anomalies_train = df_train[df_train['anomaly']]
+            anomalies_train = df_train[df_train['anomali']]
             ax.scatter(anomalies_train.index, anomalies_train['TDS'], color='red', label='Anomali (Train)')
-            anomalies_test = df_test[df_test['anomaly']]
+            anomalies_test = df_test[df_test['anomali']]
             ax.scatter(anomalies_test.index, anomalies_test['TDS'], color='orange', label='Anomali (Test)')
             ax.legend()
             st.pyplot(fig)
@@ -112,8 +119,8 @@ def main_page():
             # Scatter Plot train
             st.write("Scatter Plot Data Train")
             fig, ax = plt.subplots(figsize=(10, 6))
-            ax.scatter(df_train[df_train['anomaly'] == False]['pH'], df_train[df_train['anomaly'] == False]['TDS'], color='blue', label='Normal')
-            ax.scatter(df_train[df_train['anomaly'] == True]['pH'], df_train[df_train['anomaly'] == True]['TDS'], color='red', label='Anomaly')
+            ax.scatter(df_train[df_train['anomali'] == False]['pH'], df_train[df_train['anomali'] == False]['TDS'], color='blue', label='Normal')
+            ax.scatter(df_train[df_train['anomali'] == True]['pH'], df_train[df_train['anomali'] == True]['TDS'], color='red', label='Anomali')
             ax.set_xlabel('pH')
             ax.set_ylabel('TDS')
             ax.set_title('Hasil Pelatihan Scatter Plot pH dan TDS dengan Deteksi Anomali')
@@ -124,8 +131,8 @@ def main_page():
             # Scatter Plot uji
             st.write("Scatter Plot Data Uji")
             fig, ax = plt.subplots(figsize=(10, 6))
-            ax.scatter(df_test[df_test['anomaly'] == False]['pH'], df_test[df_test['anomaly'] == False]['TDS'], color='blue', label='Normal')
-            ax.scatter(df_test[df_test['anomaly'] == True]['pH'], df_test[df_test['anomaly'] == True]['TDS'], color='red', label='Anomaly')
+            ax.scatter(df_test[df_test['anomali'] == False]['pH'], df_test[df_test['anomali'] == False]['TDS'], color='blue', label='Normal')
+            ax.scatter(df_test[df_test['anomali'] == True]['pH'], df_test[df_test['anomali'] == True]['TDS'], color='red', label='Anomali')
             ax.set_xlabel('pH')
             ax.set_ylabel('TDS')
             ax.set_title('Hasil Uji Scatter Plot pH dan TDS dengan Deteksi Anomali')
