@@ -20,53 +20,56 @@ def load_and_preprocess_data(uploaded_file):
 
 # Fungsi untuk mendeteksi anomali
 def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
-    
-    # Create the 'anomali_ground_truth' column.
-    df['anomali_ground_truth'] = False  # Initialize the column with False values
-    df.loc[((df['TDS'] < TDS_lower_limit) | (df['TDS'] > TDS_upper_limit)), 'anomali_ground_truth'] = True
-    
-    # Membagi data menjadi set pelatihan dan pengujian, menghapus baris yang memiliki missing values
-    X_train, X_test = train_test_split(df.dropna(), test_size=0.2, random_state=42)
-    
-    # Mengimputasi nilai yang hilang dengan rata-rata
-    imputer = SimpleImputer(strategy='mean')
-    X_train_imputed = imputer.fit_transform(X_train)
-    X_test_imputed = imputer.transform(X_test)
+    # Tambahkan kolom anomali_ground_truth
+    if 'TDS' not in df.columns or 'pH' not in df.columns:
+        raise ValueError("Dataset harus memiliki kolom 'TDS' dan 'pH'.")
 
-    # Pelatihan model Isolation Forest dengan parameter yang disesuaikan
-    kontaminasi = df['anomali_ground_truth'].sum() / len(df)
+    df['anomali_ground_truth'] = False
+    df.loc[((df['TDS'] < TDS_lower_limit) | (df['TDS'] > TDS_upper_limit)), 'anomali_ground_truth'] = True
+
+    # Split data menjadi train-test
+    X_train, X_test = train_test_split(df, test_size=0.2, random_state=42)
+
+    # Validasi kolom setelah split
+    if 'anomali_ground_truth' not in X_test.columns:
+        raise ValueError("Kolom 'anomali_ground_truth' hilang setelah train_test_split.")
+
+    # Imputasi nilai hilang
+    if X_train.isnull().sum().sum() > 0:
+        imputer = SimpleImputer(strategy='mean')
+        X_train_imputed = imputer.fit_transform(X_train.drop(columns='anomali_ground_truth'))
+        X_test_imputed = imputer.transform(X_test.drop(columns='anomali_ground_truth'))
+    else:
+        X_train_imputed = X_train.drop(columns='anomali_ground_truth').values
+        X_test_imputed = X_test.drop(columns='anomali_ground_truth').values
+
+    # Menghitung rasio kontaminasi
+    kontaminasi = max(0.01, df['anomali_ground_truth'].mean())
+
+    # Inisialisasi model
     model = IsolationForest(contamination=kontaminasi, random_state=42)
     model.fit(X_train_imputed)
 
-    # Prediksi anomali pada data pelatihan dan pengujian
-    train_anomalies = model.predict(X_train_imputed)
-    test_anomalies = model.predict(X_test_imputed)
+    # Prediksi
+    train_anomalies = model.predict(X_train_imputed) == -1
+    test_anomalies = model.predict(X_test_imputed) == -1
 
-    # Mengonversi hasil prediksi ke boolean (True untuk anomali, False untuk data normal)
-    train_anomalies = train_anomalies == -1
-    test_anomalies = test_anomalies == -1
-
-    # Menambahkan label anomali ke DataFrame
-    df_train = pd.DataFrame(X_train_imputed, columns=X_train.columns)
+    # Buat DataFrame untuk hasil
+    df_train = pd.DataFrame(X_train_imputed, columns=X_train.drop(columns='anomali_ground_truth').columns)
     df_train['anomali'] = train_anomalies
-    df_test = pd.DataFrame(X_test_imputed, columns=X_test.columns)
+
+    df_test = pd.DataFrame(X_test_imputed, columns=X_test.drop(columns='anomali_ground_truth').columns)
     df_test['anomali'] = test_anomalies
-    
-    # Pastikan ada kolom 'anomali_ground_truth' pada df_test
-    if 'anomali_ground_truth' not in df_test.columns:
-        raise ValueError("Dataset tidak memiliki kolom 'anomali_ground_truth'")
+    df_test['anomali_ground_truth'] = X_test['anomali_ground_truth'].values
 
-    # Membandingkan prediksi model dengan ground truth
-    y_true_test = df_test['anomali_ground_truth']  # Ground truth (label asli)
-    y_pred_test = df_test['anomali']  # Prediksi model Isolation Forest
-
-    # Evaluasi metrik untuk pengujian
+    # Evaluasi
+    y_true_test = df_test['anomali_ground_truth']
+    y_pred_test = df_test['anomali']
     accuracy = accuracy_score(y_true_test, y_pred_test) * 100
     precision = precision_score(y_true_test, y_pred_test) * 100
     recall = recall_score(y_true_test, y_pred_test) * 100
     f1 = f1_score(y_true_test, y_pred_test) * 100
 
-    # Mengembalikan hasil evaluasi dan DataFrame
     return df_train, df_test, model, accuracy, precision, recall, f1
 
 # Fungsi untuk menampilkan halaman utama
@@ -92,7 +95,11 @@ def main_page():
             st.dataframe(df)  # Menampilkan seluruh data yang diunggah
             
             # Deteksi anomali
-            df_train, df_test, model, accuracy, precision, recall, f1 = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit)
+            try:
+                df_train, df_test, model, accuracy, precision, recall, f1 = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit)
+            except ValueError as e:
+                st.error(str(e))
+                return
 
             # Membuat kolom untuk menampilkan tabel secara berdampingan
             col1, col2 = st.columns(2)
@@ -173,10 +180,9 @@ def main_page():
             # Tampilkan plot di Streamlit
             st.pyplot(fig)
 
-            # Menampilkan laporan evaluasi
-            st.write("Laporan Evaluasi (Data Pengujian):")
-            report = classification_report(y_true_test, y_pred_test, output_dict=True)
-            st.write(pd.DataFrame(report).transpose())
+            # Laporan evaluasi
+            st.write("Laporan Evaluasi:")
+            st.write(pd.DataFrame(classification_report(df_test['anomali_ground_truth'], df_test['anomali'], output_dict=True)).transpose())
 
 # Fungsi login
 def login():
