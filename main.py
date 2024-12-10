@@ -103,6 +103,32 @@ def main():
             st.write(f"Recall: {recall:.2f}%")
             st.write(f"F1 Score: {f1:.2f}%")
 
+            # Tambahkan bagian ini ke dalam fungsi utama setelah evaluasi metrik
+# Metrik Evaluasi
+st.write("Histogram Metrik Evaluasi:")
+metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
+values = [accuracy, precision, recall, f1]  # Nilai metrik
+colors = ['#FF6F61', '#6BAED6', '#FFD700', '#8DA0CB']  # Warna berbeda untuk setiap metrik
+
+# Membuat histogram
+fig, ax = plt.subplots(figsize=(8, 5))
+ax.bar(metrics, values, color=colors)
+
+# Menambahkan detail pada histogram
+ax.set_title('Histogram Metrik Evaluasi', fontsize=16, color='#333333')
+ax.set_ylabel('Persentase (%)', fontsize=12, color='#333333')
+ax.set_ylim(0, 100)  # Karena metrik dalam skala persentase
+ax.set_xticks(range(len(metrics)))
+ax.set_xticklabels(metrics, fontsize=10, color='#333333')
+ax.yaxis.set_tick_params(colors='#333333')
+
+# Menambahkan nilai pada atas setiap batang histogram
+for i, v in enumerate(values):
+    ax.text(i, v + 2, f"{v:.2f}%", ha='center', fontsize=10, color='#333333')
+
+# Tampilkan plot di Streamlit
+st.pyplot(fig)
+
 # Jalankan aplikasi
 if __name__ == "__main__":
     main()
