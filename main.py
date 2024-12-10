@@ -47,7 +47,7 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
     kontaminasi = min(df['anomali_ground_truth'].mean(), 0.5)
 
     # Inisialisasi model
-    model = IsolationForest(contamination=kontaminasi, random_state=42)
+    model = IsolationForest(contamination=0.1, random_state=42)
     model.fit(X_train_imputed)
 
     # Prediksi
