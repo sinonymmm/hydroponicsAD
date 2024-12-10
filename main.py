@@ -6,7 +6,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import classification_report, accuracy_score, precision_score, recall_score, f1_score
 import matplotlib.pyplot as plt
 import plotly.express as px
-from auth import register_user, login_user
 
 # Fungsi untuk memuat dan memproses data
 def load_and_preprocess_data(uploaded_file):
@@ -74,12 +73,12 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
 
 # Fungsi untuk menampilkan halaman utama
 def main_page():
-    st.write(f"Selamat datang {st.session_state.username}")
+    st.write("Selamat datang di Aplikasi Deteksi Anomali pada Nutrisi Air Hidroponik")
 
     # Input file uploader
     uploaded_file = st.file_uploader("Unggah file dataset CSV", type="csv", key="file_uploader_main")
 
-     # Parameter TDS
+    # Parameter TDS
     TDS_upper_limit = st.number_input("Batas atas TDS:", value=1200, key="upper_limit")
     TDS_lower_limit = st.number_input("Batas bawah TDS:", value=400, key="lower_limit")
     
@@ -184,56 +183,5 @@ def main_page():
             st.write("Laporan Evaluasi:")
             st.write(pd.DataFrame(classification_report(df_test['anomali_ground_truth'], df_test['anomali'], output_dict=True)).transpose())
 
-# Fungsi login
-def login():
-    st.title("Website Deteksi Anomali Pada Nutrisi Air Hidroponik")
-    st.subheader("Login")
-
-    username = st.text_input("Username", key="username_login")
-    password = st.text_input("Password", type='password', key="password_login")
-    if st.button("Login", key="login_button"):
-        if login_user(username, password):
-            st.session_state.logged_in = True
-            st.session_state.username = username
-            st.success(f"Selamat datang {username}")
-            # Set session state for rerun and prevent continuous reruns
-            if 'rerun' not in st.session_state:
-                st.session_state.rerun = True
-                st.experimental_rerun()
-        else:
-            st.warning("Username atau password salah")
-
-# Fungsi register
-def register():
-    st.title("Website Deteksi Anomali Pada Nutrisi Air Hidroponik")
-    st.subheader("Buat Akun Baru")
-
-    username = st.text_input("Username", key="username_register")
-    password = st.text_input("Password", type='password', key="password_register")
-    if st.button("Register", key="register_button"):
-        if register_user(username, password):
-            st.success("Akun berhasil dibuat")
-            st.info("Silakan login dengan akun Anda")
-        else:
-            st.warning("Username sudah terdaftar")
-
-# Inisialisasi state
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-
-# Tampilkan menu login atau register hanya jika belum login
-menu = ["Login", "Register", "Main Page"]
-if st.session_state.logged_in:
-    menu.remove("Login")
-    menu.remove("Register")
-else:
-    menu.remove("Main Page")
-
-choice = st.sidebar.selectbox("Menu", menu)
-
-if choice == "Login":
-    login()
-elif choice == "Register":
-    register()
-elif choice == "Main Page":
-    main_page()
+# Menjalankan halaman utama
+main_page()
