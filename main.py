@@ -1,57 +1,61 @@
-from sklearn.model_selection import cross_val_score
+import streamlit as st
+import pandas as pd
+from sklearn.ensemble import IsolationForest
+from sklearn.model_selection import StratifiedKFold
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+import matplotlib.pyplot as plt
 
-# Fungsi untuk mendeteksi anomali dengan cross-validation
-def detect_anomalies_with_cv(df, TDS_upper_limit, TDS_lower_limit):
-    # Tambahkan kolom anomali_ground_truth
+# Fungsi untuk memuat dan memproses data
+def load_and_preprocess_data(uploaded_file):
+    df = pd.read_csv(uploaded_file)
+    
+    # Menghapus kolom 'created_at' jika ada dalam dataset
+    if 'created_at' in df.columns:
+        df = df.drop(columns=['created_at'])
+    
+    return df
+
+# Fungsi untuk deteksi anomali dengan cross-validation
+def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit, n_splits=5):
     if 'TDS' not in df.columns or 'pH' not in df.columns:
         raise ValueError("Dataset harus memiliki kolom 'TDS' dan 'pH'.")
-
+    
+    # Tambahkan kolom ground truth untuk anomali
     df['anomali_ground_truth'] = False
     df.loc[((df['TDS'] < TDS_lower_limit) | (df['TDS'] > TDS_upper_limit)), 'anomali_ground_truth'] = True
-
-    # Split data menjadi train-test
-    X_train, X_test = train_test_split(df, test_size=0.2, random_state=42)
-
+    
+    X = df.drop(columns=['anomali_ground_truth'])
+    y = df['anomali_ground_truth']
+    
     # Imputasi nilai hilang
-    if X_train.isnull().sum().sum() > 0:
+    if X.isnull().sum().sum() > 0:
         imputer = SimpleImputer(strategy='mean')
-        X_train_imputed = imputer.fit_transform(X_train.drop(columns='anomali_ground_truth'))
-        X_test_imputed = imputer.transform(X_test.drop(columns='anomali_ground_truth'))
-    else:
-        X_train_imputed = X_train.drop(columns='anomali_ground_truth').values
-        X_test_imputed = X_test.drop(columns='anomali_ground_truth').values
+        X = pd.DataFrame(imputer.fit_transform(X), columns=X.columns)
 
-    # Inisialisasi model
-    model = IsolationForest(contamination=0.1, random_state=42)
+    # Cross-validation setup
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    metrics = {'accuracy': [], 'precision': [], 'recall': [], 'f1': []}
 
-    # Cross-validation untuk model
-    cv_scores = cross_val_score(model, X_train_imputed, cv=5)  # Menggunakan 5-fold cross-validation
-    mean_cv_score = cv_scores.mean() * 100
+    for train_index, test_index in skf.split(X, y):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
-    # Fit model pada training data
-    model.fit(X_train_imputed)
+        model = IsolationForest(contamination=0.1, random_state=42)
+        model.fit(X_train)
 
-    # Prediksi
-    train_anomalies = model.predict(X_train_imputed) == -1
-    test_anomalies = model.predict(X_test_imputed) == -1
+        y_pred_test = model.predict(X_test) == -1
 
-    # Buat DataFrame untuk hasil
-    df_train = pd.DataFrame(X_train_imputed, columns=X_train.drop(columns='anomali_ground_truth').columns)
-    df_train['anomali'] = train_anomalies
+        # Evaluasi pada setiap fold
+        metrics['accuracy'].append(accuracy_score(y_test, y_pred_test) * 100)
+        metrics['precision'].append(precision_score(y_test, y_pred_test) * 100)
+        metrics['recall'].append(recall_score(y_test, y_pred_test) * 100)
+        metrics['f1'].append(f1_score(y_test, y_pred_test) * 100)
 
-    df_test = pd.DataFrame(X_test_imputed, columns=X_test.drop(columns='anomali_ground_truth').columns)
-    df_test['anomali'] = test_anomalies
-    df_test['anomali_ground_truth'] = X_test['anomali_ground_truth'].values
+    # Rata-rata metrik evaluasi
+    avg_metrics = {key: sum(values) / len(values) for key, values in metrics.items()}
 
-    # Evaluasi
-    y_true_test = df_test['anomali_ground_truth']
-    y_pred_test = df_test['anomali']
-    accuracy = accuracy_score(y_true_test, y_pred_test) * 100
-    precision = precision_score(y_true_test, y_pred_test) * 100
-    recall = recall_score(y_true_test, y_pred_test) * 100
-    f1 = f1_score(y_true_test, y_pred_test) * 100
-
-    return df_train, df_test, model, accuracy, precision, recall, f1, mean_cv_score
+    return avg_metrics
 
 # Fungsi untuk menampilkan halaman utama
 def main_page():
@@ -74,73 +78,36 @@ def main_page():
             # Menampilkan data awal
             st.write("Data Awal:")
             st.dataframe(df)  # Menampilkan seluruh data yang diunggah
-            # Deteksi anomali dengan cross-validation
+            
+            # Deteksi anomali
             try:
-                df_train, df_test, model, accuracy, precision, recall, f1, mean_cv_score = detect_anomalies_with_cv(df, TDS_upper_limit, TDS_lower_limit)
+                metrics = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit, n_splits=5)
             except ValueError as e:
                 st.error(str(e))
                 return
 
-            # Menampilkan kolom untuk data pelatihan dan pengujian
-            col1, col2 = st.columns(2)
+            # Menampilkan hasil evaluasi cross-validation
+            st.write("Hasil Evaluasi Cross-Validation:")
+            st.write(f"Akurasi (rata-rata): {metrics['accuracy']:.2f}%")
+            st.write(f"Precision (rata-rata): {metrics['precision']:.2f}%")
+            st.write(f"Recall (rata-rata): {metrics['recall']:.2f}%")
+            st.write(f"F1 Score (rata-rata): {metrics['f1']:.2f}%")
 
-            with col1:
-                st.write("Data Pelatihan:")
-                st.dataframe(df_train)
+            # Membuat histogram hasil evaluasi
+            st.write("Histogram Metrik Evaluasi:")
+            metrics_labels = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
+            metrics_values = [metrics['accuracy'], metrics['precision'], metrics['recall'], metrics['f1']]
+            colors = ['#FF6F61', '#6BAED6', '#FFD700', '#8DA0CB']
 
-            with col2:
-                st.write("Data Pengujian:")
-                st.dataframe(df_test)
-
-            # Visualisasi anomali
-            st.write("Visualisasi Anomali:")
-            fig, ax = plt.subplots()
-            ax.plot(df_train.index, df_train['TDS'], label='TDS')
-            anomalies_train = df_train[df_train['anomali']]
-            ax.scatter(anomalies_train.index, anomalies_train['TDS'], color='red', label='Anomali (Train)')
-            anomalies_test = df_test[df_test['anomali']]
-            ax.scatter(anomalies_test.index, anomalies_test['TDS'], color='orange', label='Anomali (Test)')
-            ax.legend()
-            st.pyplot(fig)
-
-            # Menampilkan hasil evaluasi
-            st.write(f"Akurasi: {accuracy:.2f}%")
-            st.write(f"Precision: {precision:.2f}%")
-            st.write(f"Recall: {recall:.2f}%")
-            st.write(f"F1 Score: {f1:.2f}%")
-            st.write(f"Cross-validation Score (mean): {mean_cv_score:.2f}%")
-
-            # Membuat histogram untuk metrik
-            metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score', 'CV Score']
-            values = [accuracy, precision, recall, f1, mean_cv_score]  # Nilai metrik
-            colors = ['#FF6F61', '#6BAED6', '#FFD700', '#8DA0CB', '#6BAED6']  # Warna untuk setiap metrik
-            
-            # Membuat histogram
             fig, ax = plt.subplots(figsize=(8, 5))
-            ax.bar(metrics, values, color=colors)
+            ax.bar(metrics_labels, metrics_values, color=colors)
+            ax.set_title("Histogram Metrik Evaluasi", fontsize=16)
+            ax.set_ylabel("Persentase (%)", fontsize=12)
+            ax.set_ylim(0, 100)
+            for i, v in enumerate(metrics_values):
+                ax.text(i, v + 2, f"{v:.2f}%", ha='center', fontsize=10)
             
-            # Menambahkan detail pada histogram
-            ax.set_title('Histogram Metrik Evaluasi', fontsize=16, color='#D3D3D3')
-            ax.set_ylabel('Persentase (%)', fontsize=12, color='#D3D3D3')
-            ax.set_ylim(0, 100)  # Karena metrik dalam skala persentase
-            ax.set_xticks(range(len(metrics)))
-            ax.set_xticklabels(metrics, fontsize=10, color='#D3D3D3')
-            ax.yaxis.set_tick_params(colors='#D3D3D3')
-            
-            # Menambahkan nilai pada atas setiap batang histogram
-            for i, v in enumerate(values):
-                ax.text(i, v + 2, f"{v:.2f}%", ha='center', fontsize=10, color='#FFFFFF')
-            
-            # Menyesuaikan latar belakang untuk dark mode
-            fig.patch.set_facecolor('#2F2F2F')  # Latar luar
-            ax.set_facecolor('#2F2F2F')  # Latar dalam
-            
-            # Tampilkan plot di Streamlit
             st.pyplot(fig)
-
-            # Laporan evaluasi
-            st.write("Laporan Evaluasi:")
-            st.write(pd.DataFrame(classification_report(df_test['anomali_ground_truth'], df_test['anomali'], output_dict=True)).transpose())
 
 # Menjalankan halaman utama
 main_page()
