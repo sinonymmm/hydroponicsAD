@@ -36,8 +36,9 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit, n_splits=5):
     # Cross-validation setup
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
     metrics = {'accuracy': [], 'precision': [], 'recall': [], 'f1': []}
+    scatter_data = []
 
-    for train_index, test_index in skf.split(X, y):
+    for fold, (train_index, test_index) in enumerate(skf.split(X, y)):
         X_train, X_test = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
@@ -52,10 +53,19 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit, n_splits=5):
         metrics['recall'].append(recall_score(y_test, y_pred_test) * 100)
         metrics['f1'].append(f1_score(y_test, y_pred_test) * 100)
 
+        # Simpan data scatter plot
+        fold_data = X_test.copy()
+        fold_data['anomali'] = y_pred_test
+        fold_data['fold'] = fold
+        scatter_data.append(fold_data)
+
+    # Gabungkan semua data scatter plot dari setiap fold
+    scatter_data = pd.concat(scatter_data)
+
     # Rata-rata metrik evaluasi
     avg_metrics = {key: sum(values) / len(values) for key, values in metrics.items()}
 
-    return avg_metrics
+    return avg_metrics, scatter_data
 
 # Fungsi untuk menampilkan halaman utama
 def main_page():
@@ -81,7 +91,7 @@ def main_page():
             
             # Deteksi anomali
             try:
-                metrics = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit, n_splits=5)
+                metrics, scatter_data = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit, n_splits=5)
             except ValueError as e:
                 st.error(str(e))
                 return
@@ -108,6 +118,23 @@ def main_page():
                 ax.text(i, v + 2, f"{v:.2f}%", ha='center', fontsize=10)
             
             st.pyplot(fig)
+
+            # Scatter plot untuk setiap fold
+            st.write("Scatter Plot Deteksi Anomali (Setiap Fold):")
+            for fold in scatter_data['fold'].unique():
+                fold_data = scatter_data[scatter_data['fold'] == fold]
+                fig, ax = plt.subplots(figsize=(8, 6))
+                ax.scatter(fold_data[fold_data['anomali'] == False]['pH'], 
+                           fold_data[fold_data['anomali'] == False]['TDS'], 
+                           color='blue', label='Normal')
+                ax.scatter(fold_data[fold_data['anomali'] == True]['pH'], 
+                           fold_data[fold_data['anomali'] == True]['TDS'], 
+                           color='red', label='Anomali')
+                ax.set_xlabel('pH')
+                ax.set_ylabel('TDS')
+                ax.set_title(f'Scatter Plot Fold {fold + 1}')
+                ax.legend()
+                st.pyplot(fig)
 
 # Menjalankan halaman utama
 main_page()
