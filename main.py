@@ -1,24 +1,7 @@
-import streamlit as st
-import pandas as pd
-from sklearn.ensemble import IsolationForest
-from sklearn.model_selection import train_test_split
-from sklearn.impute import SimpleImputer
-from sklearn.metrics import classification_report, accuracy_score, precision_score, recall_score, f1_score
-import matplotlib.pyplot as plt
-import plotly.express as px
+from sklearn.model_selection import cross_val_score
 
-# Fungsi untuk memuat dan memproses data
-def load_and_preprocess_data(uploaded_file):
-    df = pd.read_csv(uploaded_file)
-    
-    # Menghapus kolom 'created_at' jika ada dalam dataset
-    if 'created_at' in df.columns:
-        df = df.drop(columns=['created_at'])
-    
-    return df
-
-# Fungsi untuk mendeteksi anomali
-def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
+# Fungsi untuk mendeteksi anomali dengan cross-validation
+def detect_anomalies_with_cv(df, TDS_upper_limit, TDS_lower_limit):
     # Tambahkan kolom anomali_ground_truth
     if 'TDS' not in df.columns or 'pH' not in df.columns:
         raise ValueError("Dataset harus memiliki kolom 'TDS' dan 'pH'.")
@@ -29,10 +12,6 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
     # Split data menjadi train-test
     X_train, X_test = train_test_split(df, test_size=0.2, random_state=42)
 
-    # Validasi kolom setelah split
-    if 'anomali_ground_truth' not in X_test.columns:
-        raise ValueError("Kolom 'anomali_ground_truth' hilang setelah train_test_split.")
-
     # Imputasi nilai hilang
     if X_train.isnull().sum().sum() > 0:
         imputer = SimpleImputer(strategy='mean')
@@ -42,11 +21,14 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
         X_train_imputed = X_train.drop(columns='anomali_ground_truth').values
         X_test_imputed = X_test.drop(columns='anomali_ground_truth').values
 
-    # Menghitung rasio kontaminasi (dengan batas maksimum 0.5)
-    kontaminasi = min(df['anomali_ground_truth'].mean(), 0.5)
-
     # Inisialisasi model
     model = IsolationForest(contamination=0.1, random_state=42)
+
+    # Cross-validation untuk model
+    cv_scores = cross_val_score(model, X_train_imputed, cv=5)  # Menggunakan 5-fold cross-validation
+    mean_cv_score = cv_scores.mean() * 100
+
+    # Fit model pada training data
     model.fit(X_train_imputed)
 
     # Prediksi
@@ -69,7 +51,7 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
     recall = recall_score(y_true_test, y_pred_test) * 100
     f1 = f1_score(y_true_test, y_pred_test) * 100
 
-    return df_train, df_test, model, accuracy, precision, recall, f1
+    return df_train, df_test, model, accuracy, precision, recall, f1, mean_cv_score
 
 # Fungsi untuk menampilkan halaman utama
 def main_page():
@@ -92,15 +74,14 @@ def main_page():
             # Menampilkan data awal
             st.write("Data Awal:")
             st.dataframe(df)  # Menampilkan seluruh data yang diunggah
-            
-            # Deteksi anomali
+            # Deteksi anomali dengan cross-validation
             try:
-                df_train, df_test, model, accuracy, precision, recall, f1 = detect_anomalies(df, TDS_upper_limit, TDS_lower_limit)
+                df_train, df_test, model, accuracy, precision, recall, f1, mean_cv_score = detect_anomalies_with_cv(df, TDS_upper_limit, TDS_lower_limit)
             except ValueError as e:
                 st.error(str(e))
                 return
 
-            # Membuat kolom untuk menampilkan tabel secara berdampingan
+            # Menampilkan kolom untuk data pelatihan dan pengujian
             col1, col2 = st.columns(2)
 
             with col1:
@@ -122,39 +103,17 @@ def main_page():
             ax.legend()
             st.pyplot(fig)
 
-            # Scatter Plot train
-            st.write("Scatter Plot Data Train")
-            fig, ax = plt.subplots(figsize=(10, 6))
-            ax.scatter(df_train[df_train['anomali'] == False]['pH'], df_train[df_train['anomali'] == False]['TDS'], color='blue', label='Normal')
-            ax.scatter(df_train[df_train['anomali'] == True]['pH'], df_train[df_train['anomali'] == True]['TDS'], color='red', label='Anomali')
-            ax.set_xlabel('pH')
-            ax.set_ylabel('TDS')
-            ax.set_title('Hasil Pelatihan Scatter Plot pH dan TDS dengan Deteksi Anomali')
-            ax.legend()
-            st.pyplot(fig)
-
-
-            # Scatter Plot uji
-            st.write("Scatter Plot Data Uji")
-            fig, ax = plt.subplots(figsize=(10, 6))
-            ax.scatter(df_test[df_test['anomali'] == False]['pH'], df_test[df_test['anomali'] == False]['TDS'], color='blue', label='Normal')
-            ax.scatter(df_test[df_test['anomali'] == True]['pH'], df_test[df_test['anomali'] == True]['TDS'], color='red', label='Anomali')
-            ax.set_xlabel('pH')
-            ax.set_ylabel('TDS')
-            ax.set_title('Hasil Uji Scatter Plot pH dan TDS dengan Deteksi Anomali')
-            ax.legend()
-            st.pyplot(fig)
-
-            # Menghitung dan menampilkan metrik evaluasi
+            # Menampilkan hasil evaluasi
             st.write(f"Akurasi: {accuracy:.2f}%")
             st.write(f"Precision: {precision:.2f}%")
             st.write(f"Recall: {recall:.2f}%")
             st.write(f"F1 Score: {f1:.2f}%")
+            st.write(f"Cross-validation Score (mean): {mean_cv_score:.2f}%")
 
-            # Data metrik
-            metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
-            values = [accuracy, precision, recall, f1]  # Nilai metrik
-            colors = ['#FF6F61', '#6BAED6', '#FFD700', '#8DA0CB']  # Warna berbeda untuk setiap metrik
+            # Membuat histogram untuk metrik
+            metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score', 'CV Score']
+            values = [accuracy, precision, recall, f1, mean_cv_score]  # Nilai metrik
+            colors = ['#FF6F61', '#6BAED6', '#FFD700', '#8DA0CB', '#6BAED6']  # Warna untuk setiap metrik
             
             # Membuat histogram
             fig, ax = plt.subplots(figsize=(8, 5))
