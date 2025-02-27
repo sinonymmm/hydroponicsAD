@@ -27,7 +27,7 @@ def detect_anomalies(df, TDS_upper_limit, TDS_lower_limit):
     df.loc[((df['TDS'] < TDS_lower_limit) | (df['TDS'] > TDS_upper_limit)), 'anomali_ground_truth'] = True
 
     # Split data menjadi train-test
-    X_train, X_test = train_test_split(df, test_size=0.3, random_state=42)
+    X_train, X_test = train_test_split(df, test_size=0.1, random_state=42)
 
     # Validasi kolom setelah split
     if 'anomali_ground_truth' not in X_test.columns:
